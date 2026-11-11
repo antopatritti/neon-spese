@@ -1,4 +1,4 @@
-const CACHE = 'neon-spese-cache-v2';
+const CACHE = 'neon-spese-cache-v3';
 const FILES = ['./', './index.html', './config.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)));
