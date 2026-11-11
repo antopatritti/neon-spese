@@ -12,6 +12,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>NEON — Spese sotto controllo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -31,6 +33,14 @@
       --shadow: 0 18px 50px rgba(0,0,0,.24);
     }
     * { box-sizing: border-box; }
+    .auth-screen { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:22px; background:radial-gradient(ellipse at 8% -5%,rgba(80,243,223,.13),transparent 38%),radial-gradient(ellipse at 100% 16%,rgba(173,131,255,.12),transparent 35%),#090d16; }
+    .auth-card { width:min(100%,420px); padding:25px; border:1px solid rgba(80,243,223,.22); border-radius:24px; background:linear-gradient(150deg,#131d2e,#0e1522); box-shadow:0 20px 70px #0008; }
+    .auth-title { font-size:25px; font-weight:900; letter-spacing:.18em; color:var(--cyan); }
+    .auth-copy { color:var(--muted); font-size:13px; line-height:1.55; margin:10px 0 20px; }
+    .auth-card .field { width:100%; margin:6px 0 12px; }
+    .auth-status { min-height:20px; color:var(--cyan); font-size:12px; margin-top:12px; }
+    .account-row { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom:12px; font-size:12px; color:var(--muted); }
+    .account-row button { border:1px solid var(--line); color:var(--danger); background:transparent; border-radius:10px; padding:8px 10px; }
     html { background: var(--bg); scroll-behavior: smooth; }
     body {
       margin: 0; min-height: 100vh; color: var(--text);
@@ -189,7 +199,21 @@
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-title">NEON</div>
+      <div class="auth-copy" id="authCopy">Accedi al tuo spazio personale. Le tue spese saranno sincronizzate tra i tuoi dispositivi.</div>
+      <form id="authForm">
+        <label class="form-label" for="authEmail">EMAIL</label><input class="field" id="authEmail" type="email" autocomplete="username" required placeholder="nome@email.com" />
+        <label class="form-label" for="authPassword">PASSWORD</label><input class="field" id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri" />
+        <button class="primary" id="authSubmit" type="submit" style="width:100%;margin-top:8px">Accedi</button>
+      </form>
+      <button class="secondary" id="authToggle" type="button" style="width:100%;margin-top:9px">Crea un account</button>
+      <div class="auth-status" id="authStatus" role="status"></div>
+      <div class="privacy-note" style="margin-top:8px">Account personale. Non inserire mai credenziali della tua banca.</div>
+    </div>
+  </div>
+  <div class="app" id="mainApp" style="visibility:hidden">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17.5 9 12l3.4 3.3L20 6.5" stroke="#64f9e6" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 6.5H20v4.5" stroke="#64f9e6" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -293,10 +317,13 @@
         <div class="category-manage"><input class="field" id="newCategory" maxlength="24" placeholder="Nuova categoria"/><button class="secondary" id="addCategory" type="button">+ Aggiungi</button></div>
       </div>
       <div class="panel settings-group" style="box-shadow:none">
-        <div class="setting-label">I tuoi dati</div><p class="setting-help">I dati restano in questo browser su questo dispositivo. Esporta regolarmente un backup JSON, soprattutto prima di cambiare o ripristinare iPhone.</p>
+        <div class="setting-label">Account e sincronizzazione</div>
+        <div class="account-row"><span id="accountEmail">Account non connesso</span><button type="button" id="signOutBtn">Esci</button></div>
+        <p class="setting-help">I movimenti vengono sincronizzati nel tuo database privato Supabase. Puoi usare NEON da iPhone, iPad e PC con lo stesso account.</p>
+        <div class="setting-label" style="margin-top:14px">I tuoi dati</div><p class="setting-help">Esporta comunque un backup JSON periodico: la sincronizzazione non sostituisce una copia di sicurezza.</p>
         <div class="form-grid"><button class="secondary" id="exportJson" type="button">↓ Backup JSON</button><button class="secondary" id="exportCsv" type="button">↓ Esporta CSV</button></div>
         <div style="margin-top:9px"><label class="secondary" style="display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 12px">↑ Importa CSV o backup JSON<input id="importFile" type="file" accept=".csv,.json,text/csv,application/json" style="display:none"/></label></div>
-        <p class="privacy-note" style="margin-top:12px">Nessuna registrazione, nessuna connessione bancaria e nessun invio automatico dei dati. L'importazione CSV dipende dal formato dell'estratto conto.</p>
+        <p class="privacy-note" style="margin-top:12px">NEON non accede alle notifiche bancarie e non chiede credenziali bancarie. I dati cloud sono protetti dalle policy Row Level Security del database.</p>
       </div>
     </div>
   </div>
@@ -306,6 +333,9 @@
 (() => {
   'use strict';
   const STORE = 'neon-spese-v1';
+  const cfg = window.NEON_SUPABASE_CONFIG || {};
+  let db = null, currentUser = null, cloudReady = false, authMode = 'signin', syncTimer = null, applyingRemote = false;
+  let knownTransactionIds = new Set(), knownCategoryIds = new Set();
   const PALETTE = ['#50f3df','#65a7ff','#ad83ff','#ff70c8','#c6ff6b','#ffb15c','#7ee0ff','#ff8d8d','#a4b4c8','#b6ee8a'];
   const DEFAULT_CATEGORIES = [
     {id:'alimentari',name:'Alimentari',emoji:'🛒',color:'#50f3df'},
@@ -354,7 +384,98 @@
   const save = () => {
     try { localStorage.setItem(STORE, JSON.stringify(state)); }
     catch { toast('Spazio di archiviazione non disponibile. Esporta un backup.'); }
+    if (cloudReady && !applyingRemote) {
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => syncToCloud().catch(e => toast('Errore sincronizzazione: ' + (e.message || 'riprova'))), 350);
+    }
   };
+  function showAuth(message='') { $('authScreen').style.display='grid'; $('mainApp').style.visibility='hidden'; $('authStatus').textContent=message; }
+  function showApp() { $('authScreen').style.display='none'; $('mainApp').style.visibility='visible'; $('accountEmail').textContent=currentUser?.email || ''; }
+  function setAuthMode(mode) {
+    authMode=mode; $('authSubmit').textContent=mode==='signup'?'Crea account':'Accedi';
+    $('authToggle').textContent=mode==='signup'?'Ho già un account':'Crea un account';
+    $('authCopy').textContent=mode==='signup'?'Crea il tuo account personale NEON. Usa una password unica, non quella della banca.':'Accedi al tuo spazio personale. Le tue spese saranno sincronizzate tra i tuoi dispositivi.';
+    $('authPassword').autocomplete=mode==='signup'?'new-password':'current-password';
+  }
+  function checkCloudConfig() {
+    if (!cfg.url || !cfg.anonKey || !window.supabase?.createClient) {
+      showAuth('Configurazione Supabase mancante: inserisci URL e chiave publishable in config.js.');
+      $('authForm').style.display='none'; $('authToggle').style.display='none'; return false;
+    }
+    db=window.supabase.createClient(cfg.url,cfg.anonKey); return true;
+  }
+  async function loadCloudState() {
+    const [tr,ca,se] = await Promise.all([
+      db.from('transactions').select('id,amount,category,date,note'),
+      db.from('categories').select('id,name,emoji,color'),
+      db.from('settings').select('budget').eq('user_id',currentUser.id).maybeSingle()
+    ]);
+    for (const r of [tr,ca,se]) if (r.error) throw r.error;
+    const remoteTransactions=(tr.data||[]).map(t=>({id:String(t.id),amount:Number(t.amount),category:t.category,date:t.date,note:t.note||''}));
+    const remoteCategories=(ca.data||[]).map(c=>({id:c.id,name:c.name,emoji:c.emoji||'✳️',color:c.color||'#a4b4c8'}));
+    if (!remoteTransactions.length && !remoteCategories.length && (state.transactions.length || state.budget || state.categories.some(c=>!DEFAULT_CATEGORIES.some(d=>d.id===c.id)))) {
+      if (confirm('Il cloud è vuoto ma questo dispositivo contiene già dati NEON. Vuoi copiarli nel tuo account Supabase?')) {
+        const writes = await Promise.all([
+          db.from('transactions').upsert(state.transactions.map(t=>({...t,user_id:currentUser.id}))),
+          db.from('categories').upsert(state.categories.map(c=>({...c,user_id:currentUser.id}))),
+          db.from('settings').upsert({user_id:currentUser.id,budget:state.budget})
+        ]);
+        const failed = writes.find(x=>x.error); if(failed) throw failed.error;
+      } else {
+        state={transactions:[],budget:0,categories:DEFAULT_CATEGORIES.map(x=>({...x}))};
+        localStorage.setItem(STORE,JSON.stringify(state));
+      }
+    } else {
+      applyingRemote=true;
+      state={transactions:remoteTransactions,budget:Number(se.data?.budget)||0,categories:remoteCategories.length?remoteCategories:DEFAULT_CATEGORIES.map(x=>({...x}))};
+      localStorage.setItem(STORE,JSON.stringify(state));
+      applyingRemote=false;
+    }
+    knownTransactionIds=new Set((tr.data||[]).map(t=>String(t.id)));
+    knownCategoryIds=new Set((ca.data||[]).map(c=>String(c.id)));
+    cloudReady=true; fillCategorySelect(); render();
+  }
+  async function syncToCloud() {
+    if (!cloudReady || !currentUser) return;
+    const txIds=state.transactions.map(t=>String(t.id));
+    const catIds=state.categories.map(c=>String(c.id));
+    const deletedTx=[...knownTransactionIds].filter(id=>!txIds.includes(id));
+    const deletedCats=[...knownCategoryIds].filter(id=>!catIds.includes(id));
+    if (deletedTx.length) { const r=await db.from('transactions').delete().eq('user_id',currentUser.id).in('id',deletedTx); if(r.error) throw r.error; }
+    if (deletedCats.length) { const r=await db.from('categories').delete().eq('user_id',currentUser.id).in('id',deletedCats); if(r.error) throw r.error; }
+    if (state.transactions.length) { const r=await db.from('transactions').upsert(state.transactions.map(t=>({...t,user_id:currentUser.id}))); if(r.error) throw r.error; }
+    if (state.categories.length) { const r=await db.from('categories').upsert(state.categories.map(c=>({...c,user_id:currentUser.id}))); if(r.error) throw r.error; }
+    const setting=await db.from('settings').upsert({user_id:currentUser.id,budget:state.budget}); if(setting.error) throw setting.error;
+    knownTransactionIds=new Set(txIds); knownCategoryIds=new Set(catIds);
+  }
+  async function refreshFromCloud() {
+    if (!cloudReady || applyingRemote) return;
+    try {
+      const [tr,ca,se]=await Promise.all([db.from('transactions').select('id,amount,category,date,note'),db.from('categories').select('id,name,emoji,color'),db.from('settings').select('budget').eq('user_id',currentUser.id).maybeSingle()]);
+      for (const r of [tr,ca,se]) if(r.error) throw r.error;
+      applyingRemote=true;
+      state={transactions:(tr.data||[]).map(t=>({id:String(t.id),amount:Number(t.amount),category:t.category,date:t.date,note:t.note||''})),categories:(ca.data||[]).map(c=>({id:c.id,name:c.name,emoji:c.emoji||'✳️',color:c.color||'#a4b4c8'})),budget:Number(se.data?.budget)||0};
+      if(!state.categories.length) state.categories=DEFAULT_CATEGORIES.map(x=>({...x}));
+      localStorage.setItem(STORE,JSON.stringify(state));
+      knownTransactionIds=new Set(state.transactions.map(t=>t.id)); knownCategoryIds=new Set(state.categories.map(c=>c.id));
+      fillCategorySelect(); render(); applyingRemote=false;
+    } catch(e) { applyingRemote=false; console.error(e); }
+  }
+  function subscribeRealtime() {
+    db.channel('neon-personal-sync')
+      .on('postgres_changes',{event:'*',schema:'public',table:'transactions',filter:`user_id=eq.${currentUser.id}`},refreshFromCloud)
+      .on('postgres_changes',{event:'*',schema:'public',table:'categories',filter:`user_id=eq.${currentUser.id}`},refreshFromCloud)
+      .on('postgres_changes',{event:'*',schema:'public',table:'settings',filter:`user_id=eq.${currentUser.id}`},refreshFromCloud)
+      .subscribe();
+  }
+  async function startCloud() {
+    if(!checkCloudConfig()) return;
+    const {data,error}=await db.auth.getSession(); if(error) {showAuth(error.message);return;}
+    if(!data.session) {showAuth();return;}
+    currentUser=data.session.user; $('authForm').style.display='block'; $('authToggle').style.display='block';
+    try { await loadCloudState(); showApp(); subscribeRealtime(); }
+    catch(e) { showAuth('Errore caricamento cloud: '+e.message); }
+  }
   const monthTransactions = (m=selectedMonth) => state.transactions.filter(t=>t.date.startsWith(monthKey(m))).sort((a,b)=>b.date.localeCompare(a.date) || (b.id.localeCompare(a.id)));
   const total = ts => ts.reduce((s,t)=>s+t.amount,0);
   const category = id => state.categories.find(c=>c.id===id) || state.categories.find(c=>c.id==='altro') || {name:'Altro',emoji:'✳️',color:'#a4b4c8'};
@@ -573,6 +694,21 @@
     $('importFile').value='';
   }
 
+  $('authForm').addEventListener('submit',async e=>{
+    e.preventDefault(); if(!db) return;
+    $('authSubmit').disabled=true; $('authStatus').textContent='Connessione…';
+    const email=$('authEmail').value.trim(), password=$('authPassword').value;
+    try {
+      const result=authMode==='signup'?await db.auth.signUp({email,password}):await db.auth.signInWithPassword({email,password});
+      if(result.error) throw result.error;
+      if(authMode==='signup' && !result.data.session) { $('authStatus').textContent='Account creato. Controlla la tua email per confermare, poi accedi.'; return; }
+      currentUser=result.data.user; await loadCloudState(); showApp(); subscribeRealtime();
+    } catch(err) { $('authStatus').textContent=err.message||'Accesso non riuscito.'; }
+    finally { $('authSubmit').disabled=false; }
+  });
+  $('authToggle').addEventListener('click',()=>setAuthMode(authMode==='signup'?'signin':'signup'));
+  $('signOutBtn').addEventListener('click',async()=>{ if(!db)return; await db.auth.signOut(); cloudReady=false; currentUser=null; showAuth('Hai effettuato la disconnessione.'); });
+  window.addEventListener('focus',()=>{ if(cloudReady) refreshFromCloud(); });
   $('prevMonth').addEventListener('click',()=>{selectedMonth=new Date(selectedMonth.getFullYear(),selectedMonth.getMonth()-1,1);render();});
   $('nextMonth').addEventListener('click',()=>{selectedMonth=new Date(selectedMonth.getFullYear(),selectedMonth.getMonth()+1,1);render();});
   $('goToday').addEventListener('click',()=>{const d=new Date();selectedMonth=new Date(d.getFullYear(),d.getMonth(),1);render();});
@@ -593,6 +729,7 @@
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
   document.addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'); if(edit) showExpenseModal(edit.dataset.edit); const remove=e.target.closest('[data-remove-cat]'); if(remove) removeCategory(remove.dataset.removeCat);});
   fillCategorySelect(); render();
+  startCloud();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 })();
 </script>
