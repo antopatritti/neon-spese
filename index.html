@@ -336,6 +336,12 @@
   const cfg = window.NEON_SUPABASE_CONFIG || {};
   let db = null, currentUser = null, cloudReady = false, authMode = 'signin', syncTimer = null, applyingRemote = false;
   let knownTransactionIds = new Set(), knownCategoryIds = new Set();
+
+let syncInProgress = false;
+let syncRequested = false;
+let refreshInProgress = false;
+let refreshPending = false;
+let localRevision = 0;
   const PALETTE = ['#50f3df','#65a7ff','#ad83ff','#ff70c8','#c6ff6b','#ffb15c','#7ee0ff','#ff8d8d','#a4b4c8','#b6ee8a'];
   const DEFAULT_CATEGORIES = [
     {id:'alimentari',name:'Alimentari',emoji:'🛒',color:'#50f3df'},
@@ -382,13 +388,25 @@
   let editingId = null;
   let toastTimer;
   const save = () => {
-    try { localStorage.setItem(STORE, JSON.stringify(state)); }
-    catch { toast('Spazio di archiviazione non disponibile. Esporta un backup.'); }
-    if (cloudReady && !applyingRemote) {
-      clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => syncToCloud().catch(e => toast('Errore sincronizzazione: ' + (e.message || 'riprova'))), 350);
-    }
-  };
+  try {
+    localStorage.setItem(STORE, JSON.stringify(state));
+  } catch {
+    toast('Spazio di archiviazione non disponibile. Esporta un backup.');
+  }
+
+  localRevision++;
+
+  if (cloudReady && !applyingRemote) {
+    if (syncInProgress) syncRequested = true;
+
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      syncToCloud().catch(e =>
+        toast('Errore sincronizzazione: ' + (e.message || 'riprova'))
+      );
+    }, 350);
+  }
+};
   function showAuth(message='') { $('authScreen').style.display='grid'; $('mainApp').style.visibility='hidden'; $('authStatus').textContent=message; }
   function showApp() { $('authScreen').style.display='none'; $('mainApp').style.visibility='visible'; $('accountEmail').textContent=currentUser?.email || ''; }
   function setAuthMode(mode) {
@@ -404,19 +422,19 @@
     }
     db=window.supabase.createClient(cfg.url,cfg.anonKey); return true;
   }
-  async function loadCloudState() {
+  async function loadCloudState(){
     const [tr,ca,se] = await Promise.all([
   db.from('transactions')
     .select('id,amount,category,date,note')
-    .eq('user_id',currentUser.id),
+    .eq('user_id', currentUser.id),
 
   db.from('categories')
     .select('id,name,emoji,color')
-    .eq('user_id',currentUser.id),
+    .eq('user_id', currentUser.id),
 
   db.from('settings')
     .select('budget')
-    .eq('user_id',currentUser.id)
+    .eq('user_id', currentUser.id)
     .maybeSingle()
 ]);
 
@@ -449,32 +467,178 @@ console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
     knownCategoryIds=new Set((ca.data||[]).map(c=>String(c.id)));
     cloudReady=true; fillCategorySelect(); render();
   }
-  async function syncToCloud() {
-    if (!cloudReady || !currentUser) return;
-    const txIds=state.transactions.map(t=>String(t.id));
-    const catIds=state.categories.map(c=>String(c.id));
-    const deletedTx=[...knownTransactionIds].filter(id=>!txIds.includes(id));
-    const deletedCats=[...knownCategoryIds].filter(id=>!catIds.includes(id));
-    if (deletedTx.length) { const r=await db.from('transactions').delete().eq('user_id',currentUser.id).in('id',deletedTx); if(r.error) throw r.error; }
-    if (deletedCats.length) { const r=await db.from('categories').delete().eq('user_id',currentUser.id).in('id',deletedCats); if(r.error) throw r.error; }
-    if (state.transactions.length) { const r=await db.from('transactions').upsert(state.transactions.map(t=>({...t,user_id:currentUser.id}))); if(r.error) throw r.error; }
-    if (state.categories.length) { const r=await db.from('categories').upsert(state.categories.map(c=>({...c,user_id:currentUser.id}))); if(r.error) throw r.error; }
-    const setting=await db.from('settings').upsert({user_id:currentUser.id,budget:state.budget}); if(setting.error) throw setting.error;
-    knownTransactionIds=new Set(txIds); knownCategoryIds=new Set(catIds);
+ async function syncToCloud() {
+  if (!cloudReady || !currentUser) return;
+
+  if (syncInProgress) {
+    syncRequested = true;
+    return;
   }
+
+  syncInProgress = true;
+
+  try {
+    do {
+      syncRequested = false;
+
+      const revision = localRevision;
+      const snapshot = JSON.parse(JSON.stringify(state));
+
+      const txIds = snapshot.transactions.map(t => String(t.id));
+      const catIds = snapshot.categories.map(c => String(c.id));
+
+      const deletedTx = [...knownTransactionIds].filter(id => !txIds.includes(id));
+      const deletedCats = [...knownCategoryIds].filter(id => !catIds.includes(id));
+
+      if (deletedTx.length) {
+        const r = await db.from('transactions')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .in('id', deletedTx);
+
+        if (r.error) throw r.error;
+      }
+
+      if (deletedCats.length) {
+        const r = await db.from('categories')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .in('id', deletedCats);
+
+        if (r.error) throw r.error;
+      }
+
+      if (snapshot.transactions.length) {
+        const r = await db.from('transactions').upsert(
+          snapshot.transactions.map(t => ({
+            ...t,
+            user_id: currentUser.id
+          }))
+        );
+
+        if (r.error) throw r.error;
+      }
+
+      if (snapshot.categories.length) {
+        const r = await db.from('categories').upsert(
+          snapshot.categories.map(c => ({
+            ...c,
+            user_id: currentUser.id
+          }))
+        );
+
+        if (r.error) throw r.error;
+      }
+
+      const setting = await db.from('settings').upsert({
+        user_id: currentUser.id,
+        budget: snapshot.budget
+      });
+
+      if (setting.error) throw setting.error;
+
+      knownTransactionIds = new Set(txIds);
+      knownCategoryIds = new Set(catIds);
+
+      if (localRevision !== revision) {
+        syncRequested = true;
+      }
+
+    } while (syncRequested);
+
+  } finally {
+    syncInProgress = false;
+
+    if (refreshPending) {
+      refreshPending = false;
+      refreshFromCloud();
+    }
+  }
+}
   async function refreshFromCloud() {
-    if (!cloudReady || applyingRemote) return;
-    try {
-      const [tr,ca,se]=await Promise.all([db.from('transactions').select('id,amount,category,date,note'),db.from('categories').select('id,name,emoji,color'),db.from('settings').select('budget').eq('user_id',currentUser.id).maybeSingle()]);
-      for (const r of [tr,ca,se]) if(r.error) throw r.error;
-      applyingRemote=true;
-      state={transactions:(tr.data||[]).map(t=>({id:String(t.id),amount:Number(t.amount),category:t.category,date:t.date,note:t.note||''})),categories:(ca.data||[]).map(c=>({id:c.id,name:c.name,emoji:c.emoji||'✳️',color:c.color||'#a4b4c8'})),budget:Number(se.data?.budget)||0};
-      if(!state.categories.length) state.categories=DEFAULT_CATEGORIES.map(x=>({...x}));
-      localStorage.setItem(STORE,JSON.stringify(state));
-      knownTransactionIds=new Set(state.transactions.map(t=>t.id)); knownCategoryIds=new Set(state.categories.map(c=>c.id));
-      fillCategorySelect(); render(); applyingRemote=false;
-    } catch(e) { applyingRemote=false; console.error(e); }
+  if (!cloudReady || applyingRemote) return;
+
+  if (syncInProgress || refreshInProgress) {
+    refreshPending = true;
+    return;
   }
+
+  refreshInProgress = true;
+  const revision = localRevision;
+
+  try {
+    const [tr, ca, se] = await Promise.all([
+      db.from('transactions')
+        .select('id,amount,category,date,note')
+        .eq('user_id', currentUser.id),
+
+      db.from('categories')
+        .select('id,name,emoji,color')
+        .eq('user_id', currentUser.id),
+
+      db.from('settings')
+        .select('budget')
+        .eq('user_id', currentUser.id)
+        .maybeSingle()
+    ]);
+
+    for (const r of [tr, ca, se]) {
+      if (r.error) throw r.error;
+    }
+
+    // Se nel frattempo sono cambiate le spese locali,
+    // non sovrascriverle con una lettura precedente.
+    if (syncInProgress || localRevision !== revision) {
+      refreshPending = true;
+      return;
+    }
+
+    applyingRemote = true;
+
+    state = {
+      transactions: (tr.data || []).map(t => ({
+        id: String(t.id),
+        amount: Number(t.amount),
+        category: t.category,
+        date: t.date,
+        note: t.note || ''
+      })),
+
+      categories: (ca.data || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        emoji: c.emoji || '✳️',
+        color: c.color || '#a4b4c8'
+      })),
+
+      budget: Number(se.data?.budget) || 0
+    };
+
+    if (!state.categories.length) {
+      state.categories = DEFAULT_CATEGORIES.map(x => ({...x}));
+    }
+
+    localStorage.setItem(STORE, JSON.stringify(state));
+
+    knownTransactionIds = new Set(state.transactions.map(t => String(t.id)));
+    knownCategoryIds = new Set(state.categories.map(c => String(c.id)));
+
+    fillCategorySelect();
+    render();
+
+  } catch (e) {
+    console.error('NEON refresh error:', e);
+
+  } finally {
+    applyingRemote = false;
+    refreshInProgress = false;
+
+    if (refreshPending && !syncInProgress) {
+      refreshPending = false;
+      setTimeout(() => refreshFromCloud(), 100);
+    }
+  }
+}
   function subscribeRealtime() {
     db.channel('neon-personal-sync')
       .on('postgres_changes',{event:'*',schema:'public',table:'transactions',filter:`user_id=eq.${currentUser.id}`},refreshFromCloud)
