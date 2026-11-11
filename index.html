@@ -425,6 +425,7 @@ console.log('NEON DEBUG - Transazioni:', tr.data, tr.error);
 console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
     for (const r of [tr,ca,se]) if (r.error) throw r.error;
     const remoteTransactions=(tr.data||[]).map(t=>({id:String(t.id),amount:Number(t.amount),category:t.category,date:t.date,note:t.note||''}));
+    alert('NEON: ricevute dal cloud ' + remoteTransactions.length + ' spese.');
     const remoteCategories=(ca.data||[]).map(c=>({id:c.id,name:c.name,emoji:c.emoji||'✳️',color:c.color||'#a4b4c8'}));
     if (!remoteTransactions.length && !remoteCategories.length && (state.transactions.length || state.budget || state.categories.some(c=>!DEFAULT_CATEGORIES.some(d=>d.id===c.id)))) {
       if (confirm('Il cloud è vuoto ma questo dispositivo contiene già dati NEON. Vuoi copiarli nel tuo account Supabase?')) {
