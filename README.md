@@ -10,19 +10,26 @@ PWA in italiano per tracciare le spese, con account personale e sincronizzazione
 - Realtime per aggiornare i dispositivi collegati.
 - localStorage come cache locale; esportazione JSON/CSV per backup.
 
-## Configurazione Supabase
-1. Crea un progetto su https://supabase.com/dashboard.
-2. Apri SQL Editor, crea una query e incolla `supabase-schema.sql`. Esegui lo script.
-3. In Project Settings → API recupera Project URL e Publishable key (o la legacy anon key).
-4. Apri `config.js` e sostituisci i due valori segnaposto:
-   - `INSERISCI_SUPABASE_PROJECT_URL`
-   - `INSERISCI_SUPABASE_PUBLISHABLE_KEY`
-5. Non inserire mai la `service_role` key nel frontend: dà privilegi amministrativi e non deve essere pubblicata.
-6. In Authentication → URL Configuration aggiungi l'URL GitHub Pages del repository tra Site URL / Redirect URLs, per esempio `https://TUO-USERNAME.github.io/neon-spese/`.
-7. In Authentication → Providers → Email configura la conferma email. Per il primo accesso, crea l'account e conferma l'indirizzo email se richiesto.
+## Configurazione Supabase (versione corretta)
+1. Crea il progetto su https://supabase.com/dashboard.
+2. SQL Editor → New query → incolla `supabase-schema.sql` → Run (si può rieseguire senza danni).
+3. Project Settings → API: copia **Project URL** e **Publishable (anon) key** dentro `config.js` (tra gli apici di `url` e `anonKey`). Mai la `service_role`.
+4. **Authentication → URL Configuration** (passaggio che causa quasi tutti i problemi con le email):
+   - **Site URL** = l'indirizzo esatto del sito, es. `https://TUO-USERNAME.github.io/NOME-REPO/` (NON `localhost:3000`, il valore predefinito).
+   - **Redirect URLs** = aggiungi lo stesso indirizzo (anche con `/*` in fondo).
+5. **Authentication → Sign In / Providers → Email**: scegli una delle due strade:
+   - *Uso personale, il più semplice*: disattiva **Confirm email**. Crei l'account e entri subito, senza email.
+   - *Con conferma email*: configura un **SMTP personalizzato** (Authentication → Emails → SMTP Settings, es. Resend o Brevo, gratis). Il server email predefinito di Supabase è solo di prova: pochissime email all'ora e di solito solo agli indirizzi dei membri del progetto, quindi conferma e recupero password spesso non arrivano.
+6. Se un account è già bloccato: Authentication → Users → *Add user → Create new user* con **Auto Confirm User** spuntato, oppure elimina l'utente e ricrealo.
 
 ## Pubblicazione su GitHub Pages
-Carica nella root del repository tutti i file della cartella. In Settings → Pages seleziona Deploy from a branch, `main`, `/(root)`.
+Carica i file nella root del repository (Settings → Pages → Deploy from a branch → `main` → `/(root)`). Aspetta 1–2 minuti dopo ogni commit.
+**Ad ogni modifica incrementa il numero in `sw.js`** (`neon-spese-cache-vN`) così i dispositivi scaricano la versione nuova. Su iPhone, se vedi ancora la versione vecchia: chiudi l'app dal selettore; se non basta, Impostazioni → Safari → Avanzate → Dati dei siti web → elimina il sito e riaggiungilo alla Home.
+
+## Password dimenticata e conferma email
+- Login sbagliato → compare il messaggio e il link **Password dimenticata?** (sempre visibile). Arriva un'email: il link riporta al sito, che chiede la nuova password.
+- Email di conferma non arrivata → **Reinvia email di conferma** (pausa di 60 secondi tra un invio e l'altro).
+- Un link scaduto mostra un avviso e permette di richiederne uno nuovo.
 
 ## Migrazione dei dati locali
 Se questo dispositivo contiene già spese nella vecchia versione locale, dopo il login NEON rileva il database cloud vuoto e chiede se vuoi copiarvi i dati. Prima di migrare, esporta comunque un backup JSON da Impostazioni.

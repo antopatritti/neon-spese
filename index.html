@@ -134,8 +134,8 @@
     .empty { text-align:center; padding:25px 15px; border:1px dashed rgba(154,177,207,.2); border-radius:18px; color:var(--muted); font-size:11px; line-height:1.6; }
     .empty strong { display:block; color:#dce8f7; font-size:13px; margin-bottom:4px; }
     .tab-panel { display:none; }
-    .tab-panel.active { display:block; animation:fade .18s ease; }
-    @keyframes fade { from { opacity:.4; transform:translateY(4px); } to {opacity:1;transform:none;} }
+    .tab-panel.active { display:block; animation:fade .38s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes fade { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
     .bottom-nav { position:fixed; left:50%; transform:translateX(-50%); bottom:0; z-index:20; width:min(100%,760px); padding:10px 18px max(12px,env(safe-area-inset-bottom)); display:grid; grid-template-columns:repeat(3,1fr); gap:7px; background:rgba(9,13,22,.91); backdrop-filter:blur(22px); border-top:1px solid rgba(166,190,220,.11); }
     .nav-btn { border:0; background:transparent; color:#718198; border-radius:14px; padding:8px 4px 5px; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:9px; font-weight:700; }
     .nav-btn svg { width:19px; height:19px; }
@@ -183,6 +183,32 @@
     .toast.show { opacity:1; transform:translate(-50%,0); }
     .hidden { display:none !important; }
     .empty-chart { color:var(--muted); font-size:10px; text-align:center; padding:20px 5px; }
+    /* ---- Transizioni e animazioni ---- */
+    .modal-backdrop { display:flex; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s; }
+    .modal-backdrop.open { opacity:1; visibility:visible; transition:opacity .25s ease; }
+    .modal { transform:translateY(44px) scale(.98); transition:transform .35s cubic-bezier(.2,.8,.2,1); }
+    .modal-backdrop.open .modal { transform:none; }
+    .auth-screen { transition:opacity .4s ease, visibility 0s linear 0s; }
+    .auth-screen.gone { opacity:0; visibility:hidden; pointer-events:none; transition:opacity .4s ease, visibility 0s linear .4s; }
+    .app.enter { animation:fade .5s cubic-bezier(.2,.8,.2,1) both; }
+    .nav-btn, .icon-btn, .primary, .secondary, .fab, .month-arrow { transition:transform .15s ease, background .25s ease, color .25s ease; }
+    .anim .bar-fill, .anim .month-fill { transform-origin:bottom; animation:growy .8s cubic-bezier(.2,.8,.2,1) both; }
+    .anim .cat-bar > span { transform-origin:left; animation:growx .8s cubic-bezier(.2,.8,.2,1) both; }
+    .anim .donut { animation:pop .7s cubic-bezier(.2,.8,.2,1) both; }
+    .anim .tx-row, .anim .category-list > div { animation:rise .45s ease both; }
+    .anim .tx-row:nth-child(2), .anim .category-list > div:nth-child(2) { animation-delay:.06s; }
+    .anim .tx-row:nth-child(3), .anim .category-list > div:nth-child(3) { animation-delay:.12s; }
+    .anim .tx-row:nth-child(n+4), .anim .category-list > div:nth-child(n+4) { animation-delay:.18s; }
+    @keyframes growy { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+    @keyframes growx { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+    @keyframes pop { from { opacity:0; transform:scale(.8) rotate(-40deg); } to { opacity:1; transform:none; } }
+    @keyframes rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+    /* iOS ingrandisce la pagina se un campo ha testo < 16px */
+    .field:not(.amount-field), .search, .filter { font-size:16px; }
+    .link-btn { background:none; border:0; color:var(--cyan); font-size:12px; font-weight:700; padding:8px 2px; }
+    .link-btn.pulse { animation:pulse 1.2s ease 3; }
+    @keyframes pulse { 50% { text-shadow:0 0 14px var(--cyan); transform:scale(1.06); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
     @media (max-width:420px) {
       .app { padding-left:13px; padding-right:13px; }
       .hero { padding:19px; }
@@ -204,11 +230,12 @@
       <div class="auth-title">NEON</div>
       <div class="auth-copy" id="authCopy">Accedi al tuo spazio personale. Le tue spese saranno sincronizzate tra i tuoi dispositivi.</div>
       <form id="authForm">
-        <label class="form-label" for="authEmail">EMAIL</label><input class="field" id="authEmail" type="email" autocomplete="username" required placeholder="nome@email.com" />
-        <label class="form-label" for="authPassword">PASSWORD</label><input class="field" id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri" />
+        <div id="emailWrap"><label class="form-label" for="authEmail">EMAIL</label><input class="field" id="authEmail" type="email" autocomplete="username" required placeholder="nome@email.com" /></div>
+        <div id="passWrap"><label class="form-label" id="authPassLabel" for="authPassword">PASSWORD</label><input class="field" id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri" /></div>
         <button class="primary" id="authSubmit" type="submit" style="width:100%;margin-top:8px">Accedi</button>
       </form>
-      <button class="secondary" id="authToggle" type="button" style="width:100%;margin-top:9px">Crea un account</button>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin:4px 0 6px"><button class="link-btn" id="forgotBtn" type="button">Password dimenticata?</button><button class="link-btn hidden" id="resendBtn" type="button">Reinvia email di conferma</button></div>
+      <button class="secondary" id="authToggle" type="button" style="width:100%;margin-top:4px">Crea un account</button>
       <div class="auth-status" id="authStatus" role="status"></div>
       <div class="privacy-note" style="margin-top:8px">Account personale. Non inserire mai credenziali della tua banca.</div>
     </div>
@@ -334,14 +361,12 @@
   'use strict';
   const STORE = 'neon-spese-v1';
   const cfg = window.NEON_SUPABASE_CONFIG || {};
-  let db = null, currentUser = null, cloudReady = false, authMode = 'signin', syncTimer = null, applyingRemote = false;
+  let db = null, currentUser = null, cloudReady = false, authMode = 'signin', syncTimer = null, syncing = false, applyingRemote = false, animTimer;
+  const authHash = location.hash || '';
+  let recoveryPending = /type=recovery/.test(authHash);
+  const hashError = new URLSearchParams(authHash.replace(/^#/, '')).get('error_description');
+  const redirectUrl = location.origin + location.pathname;
   let knownTransactionIds = new Set(), knownCategoryIds = new Set();
-
-let syncInProgress = false;
-let syncRequested = false;
-let refreshInProgress = false;
-let refreshPending = false;
-let localRevision = 0;
   const PALETTE = ['#50f3df','#65a7ff','#ad83ff','#ff70c8','#c6ff6b','#ffb15c','#7ee0ff','#ff8d8d','#a4b4c8','#b6ee8a'];
   const DEFAULT_CATEGORIES = [
     {id:'alimentari',name:'Alimentari',emoji:'🛒',color:'#50f3df'},
@@ -388,62 +413,70 @@ let localRevision = 0;
   let editingId = null;
   let toastTimer;
   const save = () => {
-  try {
-    localStorage.setItem(STORE, JSON.stringify(state));
-  } catch {
-    toast('Spazio di archiviazione non disponibile. Esporta un backup.');
+    try { localStorage.setItem(STORE, JSON.stringify(state)); }
+    catch { toast('Spazio di archiviazione non disponibile. Esporta un backup.'); }
+    if (cloudReady && !applyingRemote) {
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => { syncTimer = null; syncing = true; syncToCloud().catch(e => toast('Errore sincronizzazione: ' + (e.message || 'riprova'))).finally(() => { syncing = false; }); }, 350);
+    }
+  };
+  function playAnim() {
+    document.body.classList.remove('anim'); void document.body.offsetWidth; document.body.classList.add('anim');
+    clearTimeout(animTimer); animTimer = setTimeout(() => document.body.classList.remove('anim'), 1000);
   }
-
-  localRevision++;
-
-  if (cloudReady && !applyingRemote) {
-    if (syncInProgress) syncRequested = true;
-
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => {
-      syncToCloud().catch(e =>
-        toast('Errore sincronizzazione: ' + (e.message || 'riprova'))
-      );
-    }, 350);
+  function showAuth(message='') { $('authScreen').classList.remove('gone'); $('mainApp').style.visibility='hidden'; $('authStatus').textContent=message; }
+  function showApp() {
+    $('authScreen').classList.add('gone'); const a=$('mainApp'); a.style.visibility='visible';
+    a.classList.remove('enter'); void a.offsetWidth; a.classList.add('enter');
+    $('accountEmail').textContent=currentUser?.email || ''; playAnim();
   }
-};
-  function showAuth(message='') { $('authScreen').style.display='grid'; $('mainApp').style.visibility='hidden'; $('authStatus').textContent=message; }
-  function showApp() { $('authScreen').style.display='none'; $('mainApp').style.visibility='visible'; $('accountEmail').textContent=currentUser?.email || ''; }
   function setAuthMode(mode) {
-    authMode=mode; $('authSubmit').textContent=mode==='signup'?'Crea account':'Accedi';
-    $('authToggle').textContent=mode==='signup'?'Ho già un account':'Crea un account';
-    $('authCopy').textContent=mode==='signup'?'Crea il tuo account personale NEON. Usa una password unica, non quella della banca.':'Accedi al tuo spazio personale. Le tue spese saranno sincronizzate tra i tuoi dispositivi.';
-    $('authPassword').autocomplete=mode==='signup'?'new-password':'current-password';
+    authMode=mode;
+    const t={signin:['Accedi','Crea un account','Accedi al tuo spazio personale. Le tue spese saranno sincronizzate tra i tuoi dispositivi.'],
+      signup:['Crea account','Ho già un account','Crea il tuo account personale NEON. Usa una password unica, non quella della banca.'],
+      forgot:['Invia link di recupero','Torna all\'accesso','Inserisci la tua email: ti invieremo un link per scegliere una nuova password.'],
+      recovery:['Salva nuova password','','Scegli una nuova password (almeno 8 caratteri).']}[mode];
+    $('authSubmit').textContent=t[0]; $('authToggle').textContent=t[1]; $('authCopy').textContent=t[2];
+    $('authToggle').classList.toggle('hidden',mode==='recovery');
+    $('forgotBtn').classList.toggle('hidden',mode!=='signin'); $('forgotBtn').classList.remove('pulse');
+    $('resendBtn').classList.add('hidden');
+    $('emailWrap').classList.toggle('hidden',mode==='recovery'); $('passWrap').classList.toggle('hidden',mode==='forgot');
+    $('authEmail').required=mode!=='recovery'; $('authPassword').required=mode!=='forgot';
+    $('authPassLabel').textContent=mode==='recovery'?'NUOVA PASSWORD':'PASSWORD';
+    $('authPassword').autocomplete=(mode==='signup'||mode==='recovery')?'new-password':'current-password';
+  }
+  function enterRecovery() { setAuthMode('recovery'); showAuth('Scegli una nuova password per il tuo account.'); }
+  async function enterApp(user) { currentUser=user; await loadCloudState(); showApp(); subscribeRealtime(); }
+  async function cleanupSession(message) {
+    cloudReady=false; currentUser=null; clearTimeout(syncTimer); syncTimer=null;
+    try { await db.removeAllChannels(); } catch {}
+    state={transactions:[],budget:0,categories:DEFAULT_CATEGORIES.map(x=>({...x}))};
+    try { localStorage.removeItem(STORE); } catch {}
+    knownTransactionIds=new Set(); knownCategoryIds=new Set();
+    closeModal('settingsModal'); fillCategorySelect(); render(); setAuthMode('signin'); $('authPassword').value=''; showAuth(message);
+  }
+  function handleAuthError(err) {
+    const msg=err?.message||'', code=err?.code||'';
+    if (code==='email_not_confirmed' || /not confirmed/i.test(msg)) { $('authStatus').textContent='Email non ancora confermata. Apri il link che ti abbiamo inviato oppure reinvialo.'; $('resendBtn').classList.remove('hidden'); }
+    else if (code==='invalid_credentials' || /invalid login credentials/i.test(msg)) { $('authStatus').textContent='Email o password non corretti. Se non ricordi la password, usa “Password dimenticata?”.'; $('forgotBtn').classList.remove('pulse'); void $('forgotBtn').offsetWidth; $('forgotBtn').classList.add('pulse'); }
+    else if (/rate limit|too many|over_email_send_rate_limit/i.test(code+' '+msg)) $('authStatus').textContent='Troppe richieste email: attendi qualche minuto e riprova.';
+    else $('authStatus').textContent=msg||'Operazione non riuscita.';
   }
   function checkCloudConfig() {
     if (!cfg.url || !cfg.anonKey || !window.supabase?.createClient) {
-      showAuth('Configurazione Supabase mancante: inserisci URL e chiave publishable in config.js.');
+      showAuth(!cfg.url || !cfg.anonKey ? 'Configurazione Supabase mancante: inserisci URL e chiave publishable in config.js.' : 'Impossibile caricare Supabase (sei offline?). Riprova tra poco.');
       $('authForm').style.display='none'; $('authToggle').style.display='none'; return false;
     }
     db=window.supabase.createClient(cfg.url,cfg.anonKey); return true;
   }
-  async function loadCloudState(){
+  async function loadCloudState() {
     const [tr,ca,se] = await Promise.all([
-  db.from('transactions')
-    .select('id,amount,category,date,note')
-    .eq('user_id', currentUser.id),
-
-  db.from('categories')
-    .select('id,name,emoji,color')
-    .eq('user_id', currentUser.id),
-
-  db.from('settings')
-    .select('budget')
-    .eq('user_id', currentUser.id)
-    .maybeSingle()
-]);
-
-console.log('NEON DEBUG - Utente:', currentUser.id);
-console.log('NEON DEBUG - Transazioni:', tr.data, tr.error);
-console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
+      db.from('transactions').select('id,amount,category,date,note'),
+      db.from('categories').select('id,name,emoji,color'),
+      db.from('settings').select('budget').eq('user_id',currentUser.id).maybeSingle()
+    ]);
     for (const r of [tr,ca,se]) if (r.error) throw r.error;
     const remoteTransactions=(tr.data||[]).map(t=>({id:String(t.id),amount:Number(t.amount),category:t.category,date:t.date,note:t.note||''}));
-    alert('NEON: ricevute dal cloud ' + remoteTransactions.length + ' spese.');
     const remoteCategories=(ca.data||[]).map(c=>({id:c.id,name:c.name,emoji:c.emoji||'✳️',color:c.color||'#a4b4c8'}));
     if (!remoteTransactions.length && !remoteCategories.length && (state.transactions.length || state.budget || state.categories.some(c=>!DEFAULT_CATEGORIES.some(d=>d.id===c.id)))) {
       if (confirm('Il cloud è vuoto ma questo dispositivo contiene già dati NEON. Vuoi copiarli nel tuo account Supabase?')) {
@@ -467,178 +500,32 @@ console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
     knownCategoryIds=new Set((ca.data||[]).map(c=>String(c.id)));
     cloudReady=true; fillCategorySelect(); render();
   }
- async function syncToCloud() {
-  if (!cloudReady || !currentUser) return;
-
-  if (syncInProgress) {
-    syncRequested = true;
-    return;
+  async function syncToCloud() {
+    if (!cloudReady || !currentUser) return;
+    const txIds=state.transactions.map(t=>String(t.id));
+    const catIds=state.categories.map(c=>String(c.id));
+    const deletedTx=[...knownTransactionIds].filter(id=>!txIds.includes(id));
+    const deletedCats=[...knownCategoryIds].filter(id=>!catIds.includes(id));
+    if (deletedTx.length) { const r=await db.from('transactions').delete().eq('user_id',currentUser.id).in('id',deletedTx); if(r.error) throw r.error; }
+    if (deletedCats.length) { const r=await db.from('categories').delete().eq('user_id',currentUser.id).in('id',deletedCats); if(r.error) throw r.error; }
+    if (state.transactions.length) { const r=await db.from('transactions').upsert(state.transactions.map(t=>({...t,user_id:currentUser.id}))); if(r.error) throw r.error; }
+    if (state.categories.length) { const r=await db.from('categories').upsert(state.categories.map(c=>({...c,user_id:currentUser.id}))); if(r.error) throw r.error; }
+    const setting=await db.from('settings').upsert({user_id:currentUser.id,budget:state.budget}); if(setting.error) throw setting.error;
+    knownTransactionIds=new Set(txIds); knownCategoryIds=new Set(catIds);
   }
-
-  syncInProgress = true;
-
-  try {
-    do {
-      syncRequested = false;
-
-      const revision = localRevision;
-      const snapshot = JSON.parse(JSON.stringify(state));
-
-      const txIds = snapshot.transactions.map(t => String(t.id));
-      const catIds = snapshot.categories.map(c => String(c.id));
-
-      const deletedTx = [...knownTransactionIds].filter(id => !txIds.includes(id));
-      const deletedCats = [...knownCategoryIds].filter(id => !catIds.includes(id));
-
-      if (deletedTx.length) {
-        const r = await db.from('transactions')
-          .delete()
-          .eq('user_id', currentUser.id)
-          .in('id', deletedTx);
-
-        if (r.error) throw r.error;
-      }
-
-      if (deletedCats.length) {
-        const r = await db.from('categories')
-          .delete()
-          .eq('user_id', currentUser.id)
-          .in('id', deletedCats);
-
-        if (r.error) throw r.error;
-      }
-
-      if (snapshot.transactions.length) {
-        const r = await db.from('transactions').upsert(
-          snapshot.transactions.map(t => ({
-            ...t,
-            user_id: currentUser.id
-          }))
-        );
-
-        if (r.error) throw r.error;
-      }
-
-      if (snapshot.categories.length) {
-        const r = await db.from('categories').upsert(
-          snapshot.categories.map(c => ({
-            ...c,
-            user_id: currentUser.id
-          }))
-        );
-
-        if (r.error) throw r.error;
-      }
-
-      const setting = await db.from('settings').upsert({
-        user_id: currentUser.id,
-        budget: snapshot.budget
-      });
-
-      if (setting.error) throw setting.error;
-
-      knownTransactionIds = new Set(txIds);
-      knownCategoryIds = new Set(catIds);
-
-      if (localRevision !== revision) {
-        syncRequested = true;
-      }
-
-    } while (syncRequested);
-
-  } finally {
-    syncInProgress = false;
-
-    if (refreshPending) {
-      refreshPending = false;
-      refreshFromCloud();
-    }
-  }
-}
   async function refreshFromCloud() {
-  if (!cloudReady || applyingRemote) return;
-
-  if (syncInProgress || refreshInProgress) {
-    refreshPending = true;
-    return;
+    if (!cloudReady || applyingRemote || syncing || syncTimer) return;
+    try {
+      const [tr,ca,se]=await Promise.all([db.from('transactions').select('id,amount,category,date,note'),db.from('categories').select('id,name,emoji,color'),db.from('settings').select('budget').eq('user_id',currentUser.id).maybeSingle()]);
+      for (const r of [tr,ca,se]) if(r.error) throw r.error;
+      applyingRemote=true;
+      state={transactions:(tr.data||[]).map(t=>({id:String(t.id),amount:Number(t.amount),category:t.category,date:t.date,note:t.note||''})),categories:(ca.data||[]).map(c=>({id:c.id,name:c.name,emoji:c.emoji||'✳️',color:c.color||'#a4b4c8'})),budget:Number(se.data?.budget)||0};
+      if(!state.categories.length) state.categories=DEFAULT_CATEGORIES.map(x=>({...x}));
+      localStorage.setItem(STORE,JSON.stringify(state));
+      knownTransactionIds=new Set(state.transactions.map(t=>t.id)); knownCategoryIds=new Set(state.categories.map(c=>c.id));
+      fillCategorySelect(); render(); applyingRemote=false;
+    } catch(e) { applyingRemote=false; console.error(e); }
   }
-
-  refreshInProgress = true;
-  const revision = localRevision;
-
-  try {
-    const [tr, ca, se] = await Promise.all([
-      db.from('transactions')
-        .select('id,amount,category,date,note')
-        .eq('user_id', currentUser.id),
-
-      db.from('categories')
-        .select('id,name,emoji,color')
-        .eq('user_id', currentUser.id),
-
-      db.from('settings')
-        .select('budget')
-        .eq('user_id', currentUser.id)
-        .maybeSingle()
-    ]);
-
-    for (const r of [tr, ca, se]) {
-      if (r.error) throw r.error;
-    }
-
-    // Se nel frattempo sono cambiate le spese locali,
-    // non sovrascriverle con una lettura precedente.
-    if (syncInProgress || localRevision !== revision) {
-      refreshPending = true;
-      return;
-    }
-
-    applyingRemote = true;
-
-    state = {
-      transactions: (tr.data || []).map(t => ({
-        id: String(t.id),
-        amount: Number(t.amount),
-        category: t.category,
-        date: t.date,
-        note: t.note || ''
-      })),
-
-      categories: (ca.data || []).map(c => ({
-        id: c.id,
-        name: c.name,
-        emoji: c.emoji || '✳️',
-        color: c.color || '#a4b4c8'
-      })),
-
-      budget: Number(se.data?.budget) || 0
-    };
-
-    if (!state.categories.length) {
-      state.categories = DEFAULT_CATEGORIES.map(x => ({...x}));
-    }
-
-    localStorage.setItem(STORE, JSON.stringify(state));
-
-    knownTransactionIds = new Set(state.transactions.map(t => String(t.id)));
-    knownCategoryIds = new Set(state.categories.map(c => String(c.id)));
-
-    fillCategorySelect();
-    render();
-
-  } catch (e) {
-    console.error('NEON refresh error:', e);
-
-  } finally {
-    applyingRemote = false;
-    refreshInProgress = false;
-
-    if (refreshPending && !syncInProgress) {
-      refreshPending = false;
-      setTimeout(() => refreshFromCloud(), 100);
-    }
-  }
-}
   function subscribeRealtime() {
     db.channel('neon-personal-sync')
       .on('postgres_changes',{event:'*',schema:'public',table:'transactions',filter:`user_id=eq.${currentUser.id}`},refreshFromCloud)
@@ -648,10 +535,16 @@ console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
   }
   async function startCloud() {
     if(!checkCloudConfig()) return;
+    db.auth.onAuthStateChange(event=>{
+      if(event==='PASSWORD_RECOVERY') { recoveryPending=true; setTimeout(enterRecovery,0); }
+      if(event==='SIGNED_OUT' && currentUser) setTimeout(()=>cleanupSession('Sessione terminata. Accedi di nuovo.'),0);
+    });
+    if(hashError) { history.replaceState(null,'',location.pathname+location.search); setAuthMode('forgot'); showAuth('Il link non è valido o è scaduto. Richiedine uno nuovo qui sotto.'); return; }
     const {data,error}=await db.auth.getSession(); if(error) {showAuth(error.message);return;}
     if(!data.session) {showAuth();return;}
-    currentUser=data.session.user; $('authForm').style.display='block'; $('authToggle').style.display='block';
-    try { await loadCloudState(); showApp(); subscribeRealtime(); }
+    if(recoveryPending) { enterRecovery(); return; }
+    $('authForm').style.display='block'; $('authToggle').style.display='block';
+    try { await enterApp(data.session.user); }
     catch(e) { showAuth('Errore caricamento cloud: '+e.message); }
   }
   const monthTransactions = (m=selectedMonth) => state.transactions.filter(t=>t.date.startsWith(monthKey(m))).sort((a,b)=>b.date.localeCompare(a.date) || (b.id.localeCompare(a.id)));
@@ -664,7 +557,7 @@ console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
     document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id===`tab-${tab}`));
     document.querySelectorAll('.nav-btn').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
     $('addExpense').classList.toggle('hidden',tab==='moves' || tab==='stats');
-    render();
+    render(); playAnim();
     window.scrollTo({top:0,behavior:'smooth'});
   }
   function openModal(id) { $(id).classList.add('open'); document.body.style.overflow='hidden'; }
@@ -874,22 +767,44 @@ console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
 
   $('authForm').addEventListener('submit',async e=>{
     e.preventDefault(); if(!db) return;
-    $('authSubmit').disabled=true; $('authStatus').textContent='Connessione…';
+    $('authSubmit').disabled=true; $('authStatus').textContent='Connessione…'; $('resendBtn').classList.add('hidden');
     const email=$('authEmail').value.trim(), password=$('authPassword').value;
     try {
-      const result=authMode==='signup'?await db.auth.signUp({email,password}):await db.auth.signInWithPassword({email,password});
-      if(result.error) throw result.error;
-      if(authMode==='signup' && !result.data.session) { $('authStatus').textContent='Account creato. Controlla la tua email per confermare, poi accedi.'; return; }
-      currentUser=result.data.user; await loadCloudState(); showApp(); subscribeRealtime();
-    } catch(err) { $('authStatus').textContent=err.message||'Accesso non riuscito.'; }
+      if(authMode==='forgot') {
+        const r=await db.auth.resetPasswordForEmail(email,{redirectTo:redirectUrl}); if(r.error) throw r.error;
+        $('authStatus').textContent='Se l\'email è registrata, riceverai un link per scegliere una nuova password. Controlla anche lo spam.'; return;
+      }
+      if(authMode==='recovery') {
+        const r=await db.auth.updateUser({password}); if(r.error) throw r.error;
+        recoveryPending=false; history.replaceState(null,'',location.pathname+location.search);
+        setAuthMode('signin'); await enterApp(r.data.user); toast('Password aggiornata.'); return;
+      }
+      if(authMode==='signup') {
+        const r=await db.auth.signUp({email,password,options:{emailRedirectTo:redirectUrl}}); if(r.error) throw r.error;
+        if(r.data.user && r.data.user.identities && r.data.user.identities.length===0) { setAuthMode('signin'); $('authStatus').textContent='Questa email è già registrata: accedi oppure usa “Password dimenticata?”.'; return; }
+        if(!r.data.session) { $('authStatus').textContent='Account creato. Ti abbiamo inviato un\'email di conferma: apri il link, poi accedi.'; $('resendBtn').classList.remove('hidden'); return; }
+        await enterApp(r.data.user); return;
+      }
+      const r=await db.auth.signInWithPassword({email,password}); if(r.error) throw r.error;
+      await enterApp(r.data.user);
+    } catch(err) { handleAuthError(err); }
     finally { $('authSubmit').disabled=false; }
   });
-  $('authToggle').addEventListener('click',()=>setAuthMode(authMode==='signup'?'signin':'signup'));
-  $('signOutBtn').addEventListener('click',async()=>{ if(!db)return; await db.auth.signOut(); cloudReady=false; currentUser=null; showAuth('Hai effettuato la disconnessione.'); });
+  $('authToggle').addEventListener('click',()=>{ setAuthMode(authMode==='signin'?'signup':'signin'); $('authStatus').textContent=''; });
+  $('forgotBtn').addEventListener('click',()=>{ setAuthMode('forgot'); $('authStatus').textContent=''; });
+  $('resendBtn').addEventListener('click',async()=>{
+    const email=$('authEmail').value.trim(); if(!email||!db) { $('authStatus').textContent='Inserisci la tua email qui sopra.'; return; }
+    const btn=$('resendBtn'); btn.disabled=true;
+    try { const r=await db.auth.resend({type:'signup',email,options:{emailRedirectTo:redirectUrl}}); if(r.error) throw r.error; $('authStatus').textContent='Email di conferma reinviata. Controlla anche lo spam.'; }
+    catch(err) { handleAuthError(err); btn.classList.remove('hidden'); }
+    let n=60; btn.textContent='Reinvia tra 60s';
+    const t=setInterval(()=>{ n--; btn.textContent=`Reinvia tra ${n}s`; if(n<=0){clearInterval(t);btn.textContent='Reinvia email di conferma';btn.disabled=false;} },1000);
+  });
+  $('signOutBtn').addEventListener('click',async()=>{ if(!db)return; await cleanupSession('Hai effettuato la disconnessione.'); try { await db.auth.signOut(); } catch {} });
   window.addEventListener('focus',()=>{ if(cloudReady) refreshFromCloud(); });
-  $('prevMonth').addEventListener('click',()=>{selectedMonth=new Date(selectedMonth.getFullYear(),selectedMonth.getMonth()-1,1);render();});
-  $('nextMonth').addEventListener('click',()=>{selectedMonth=new Date(selectedMonth.getFullYear(),selectedMonth.getMonth()+1,1);render();});
-  $('goToday').addEventListener('click',()=>{const d=new Date();selectedMonth=new Date(d.getFullYear(),d.getMonth(),1);render();});
+  $('prevMonth').addEventListener('click',()=>{selectedMonth=new Date(selectedMonth.getFullYear(),selectedMonth.getMonth()-1,1);render();playAnim();});
+  $('nextMonth').addEventListener('click',()=>{selectedMonth=new Date(selectedMonth.getFullYear(),selectedMonth.getMonth()+1,1);render();playAnim();});
+  $('goToday').addEventListener('click',()=>{const d=new Date();selectedMonth=new Date(d.getFullYear(),d.getMonth(),1);render();playAnim();});
   $('addExpense').addEventListener('click',()=>showExpenseModal());
   $('expenseForm').addEventListener('submit',saveExpense);
   $('deleteExpense').addEventListener('click',deleteExpense);
@@ -908,7 +823,7 @@ console.log('NEON DEBUG - Categorie:', ca.data, ca.error);
   document.addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'); if(edit) showExpenseModal(edit.dataset.edit); const remove=e.target.closest('[data-remove-cat]'); if(remove) removeCategory(remove.dataset.removeCat);});
   fillCategorySelect(); render();
   startCloud();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
 })();
 </script>
 </body>
