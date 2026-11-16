@@ -222,6 +222,47 @@
       .month-name { min-width:130px; }
       .filter { width:125px; }
     }
+    .emoji-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .emoji-btn { width:40px; height:40px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.04); font-size:20px; padding:0; transition:transform .15s ease, background .2s ease, border-color .2s ease; }
+    .emoji-btn:active { transform:scale(.92); }
+    .emoji-btn.sel { border-color:var(--cyan); background:rgba(80,243,223,.12); }
+    .field.emoji-input { width:58px; flex:none; text-align:center; font-size:22px; padding:8px; }
+    .pw-wrap { position:relative; display:flow-root; }
+    .pw-wrap .field { padding-right:50px; }
+    .pw-toggle { position:absolute; right:4px; top:6px; width:44px; height:45px; border:0; background:none; color:#9fb0c6; display:grid; place-items:center; border-radius:12px; }
+    .pw-toggle svg { width:21px; height:21px; }
+    .pw-toggle .eye-open { display:none; }
+    .pw-toggle.shown { color:var(--cyan); }
+    .pw-toggle.shown .eye-open { display:block; }
+    .pw-toggle.shown .eye-closed { display:none; }
+    /* ---- Responsive e aree di tocco ---- */
+    html { -webkit-text-size-adjust:100%; }
+    button { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+    body { min-height:100vh; min-height:100dvh; }
+    .app { padding-top:max(17px, calc(env(safe-area-inset-top) + 6px)); padding-left:max(17px, env(safe-area-inset-left)); padding-right:max(17px, env(safe-area-inset-right)); }
+    .bottom-nav { padding-left:max(18px, env(safe-area-inset-left)); padding-right:max(18px, env(safe-area-inset-right)); }
+    .icon-btn { width:44px; height:44px; flex:none; }
+    .monthbar { gap:4px; }
+    .month-controls { flex:1 1 auto; min-width:0; gap:2px; }
+    .month-arrow { width:44px; height:44px; flex:none; font-size:24px; }
+    .month-name { flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .today-btn { min-height:44px; min-width:48px; padding:0 6px; flex:none; }
+    .budget-edit, .section-action { min-height:40px; display:inline-flex; align-items:center; }
+    .hero-bottom { flex-wrap:wrap; }
+    .modal { max-height:min(92vh,780px); max-height:min(92dvh,780px); }
+    @media (max-width:360px) {
+      .chart-grid { grid-template-columns:1fr; }
+      .kpi-label { font-size:9px; letter-spacing:.03em; }
+      .kpi-value { font-size:15px; }
+      .hero-amount { font-size:32px; }
+      .brand-sub { display:none; }
+      .filter { width:110px; }
+    }
+    @media (max-height:480px) and (orientation:landscape) {
+      .fab { bottom:70px; }
+      .bottom-nav { padding-top:4px; }
+      .nav-btn { flex-direction:row; justify-content:center; gap:8px; }
+    }
   </style>
 </head>
 <body>
@@ -231,7 +272,7 @@
       <div class="auth-copy" id="authCopy">Accedi al tuo spazio personale. Le tue spese saranno sincronizzate tra i tuoi dispositivi.</div>
       <form id="authForm">
         <div id="emailWrap"><label class="form-label" for="authEmail">EMAIL</label><input class="field" id="authEmail" type="email" autocomplete="username" required placeholder="nome@email.com" /></div>
-        <div id="passWrap"><label class="form-label" id="authPassLabel" for="authPassword">PASSWORD</label><input class="field" id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri" /></div>
+        <div id="passWrap"><label class="form-label" id="authPassLabel" for="authPassword">PASSWORD</label><div class="pw-wrap"><input class="field" id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri" /><button class="pw-toggle" id="togglePw" type="button" aria-label="Mostra password" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M6.5 6.6C3.9 8.3 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.8-1.2M10 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div></div>
         <button class="primary" id="authSubmit" type="submit" style="width:100%;margin-top:8px">Accedi</button>
       </form>
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin:4px 0 6px"><button class="link-btn" id="forgotBtn" type="button">Password dimenticata?</button><button class="link-btn hidden" id="resendBtn" type="button">Reinvia email di conferma</button></div>
@@ -246,7 +287,7 @@
         <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17.5 9 12l3.4 3.3L20 6.5" stroke="#64f9e6" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 6.5H20v4.5" stroke="#64f9e6" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div><div class="brand-name">NEON</div><div class="brand-sub">MONEY, UNDER CONTROL</div></div>
       </div>
-      <button class="icon-btn" id="openSettings" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V4a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2.9Z"/></svg></button>
+      <button class="icon-btn" id="openSettings" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.6"/><circle cx="9" cy="17" r="2.6"/></svg></button>
     </header>
 
     <div class="monthbar">
@@ -341,7 +382,9 @@
       <div class="panel settings-group" style="box-shadow:none">
         <div class="setting-label">Categorie</div><p class="setting-help">Puoi aggiungere categorie personalizzate. Le categorie usate in una spesa non possono essere eliminate.</p>
         <div id="manageCategories"></div>
-        <div class="category-manage"><input class="field" id="newCategory" maxlength="24" placeholder="Nuova categoria"/><button class="secondary" id="addCategory" type="button">+ Aggiungi</button></div>
+        <div class="emoji-row" id="emojiRow"></div>
+        <div class="category-manage"><input class="field emoji-input" id="newEmoji" maxlength="8" value="✳️" aria-label="Emoji della categoria"/><input class="field" id="newCategory" maxlength="24" placeholder="Nuova categoria"/><button class="secondary" id="addCategory" type="button">+ Aggiungi</button></div>
+        <p class="setting-help" style="margin:8px 0 0">Tocca un'emoji qui sopra oppure scrivine una con la tastiera emoji.</p>
       </div>
       <div class="panel settings-group" style="box-shadow:none">
         <div class="setting-label">Account e sincronizzazione</div>
@@ -424,7 +467,7 @@
     document.body.classList.remove('anim'); void document.body.offsetWidth; document.body.classList.add('anim');
     clearTimeout(animTimer); animTimer = setTimeout(() => document.body.classList.remove('anim'), 1000);
   }
-  function showAuth(message='') { $('authScreen').classList.remove('gone'); $('mainApp').style.visibility='hidden'; $('authStatus').textContent=message; }
+  function showAuth(message='') { $('authPassword').type='password'; $('togglePw').classList.remove('shown'); $('togglePw').setAttribute('aria-pressed','false'); $('authScreen').classList.remove('gone'); $('mainApp').style.visibility='hidden'; $('authStatus').textContent=message; }
   function showApp() {
     $('authScreen').classList.add('gone'); const a=$('mainApp'); a.style.visibility='visible';
     a.classList.remove('enter'); void a.offsetWidth; a.classList.add('enter');
@@ -688,11 +731,24 @@
   function manageCategories() {
     $('manageCategories').innerHTML=state.categories.map(c=>`<div class="cat-manage-row"><span>${esc(c.emoji)} ${esc(c.name)}</span><button class="tiny-action danger" data-remove-cat="${esc(c.id)}">Rimuovi</button></div>`).join('');
   }
+  const EMOJIS=['🛒','☕','🍕','🍔','🍺','🚌','🚗','⛽','🏠','💡','📱','💻','📚','🎓','🎮','🎬','🎵','👕','👟','🛍️','💊','🩺','🏋️','✈️','🏖️','🐶','🎁','💇','🧾','💰','🔁','🧴'];
+  function initEmojiPicker() {
+    $('emojiRow').innerHTML=EMOJIS.map(e=>`<button type="button" class="emoji-btn" data-emoji="${e}">${e}</button>`).join('');
+    $('emojiRow').addEventListener('click',ev=>{ const b=ev.target.closest('[data-emoji]'); if(!b) return; $('newEmoji').value=b.dataset.emoji; document.querySelectorAll('.emoji-btn').forEach(x=>x.classList.toggle('sel',x===b)); });
+  }
+  function cleanEmoji(v) {
+    v=String(v||'').trim(); if(!v) return '✳️'; let g;
+    try { g=[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(v)][0].segment; } catch { g=Array.from(v)[0]; }
+    return /\p{Extended_Pictographic}/u.test(g)?g:null;
+  }
   function addCategory() {
     const name=$('newCategory').value.trim(); if (!name) {toast('Scrivi il nome della categoria.');return;}
     if (state.categories.some(c=>c.name.toLowerCase()===name.toLowerCase())) {toast('Questa categoria esiste già.');return;}
+    const emoji=cleanEmoji($('newEmoji').value); if (emoji===null) {toast('Scegli un\'emoji valida.');return;}
     const color=PALETTE[state.categories.length%PALETTE.length];
-    state.categories.push({id:`custom-${uuid()}`,name,emoji:'✳️',color}); save(); $('newCategory').value=''; fillCategorySelect(); manageCategories(); render(); toast('Categoria aggiunta.');
+    state.categories.push({id:`custom-${uuid()}`,name,emoji,color}); save(); $('newCategory').value=''; $('newEmoji').value='✳️';
+    document.querySelectorAll('.emoji-btn.sel').forEach(x=>x.classList.remove('sel'));
+    fillCategorySelect(); manageCategories(); render(); toast('Categoria aggiunta.');
   }
   function removeCategory(id) {
     if (state.transactions.some(t=>t.category===id)) {toast('Categoria in uso: non puoi eliminarla.');return;}
@@ -728,41 +784,97 @@
   }
   function parseImportDate(s) {
     s=String(s||'').trim(); if (validDate(s)) return s;
-    let m=s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/); if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return null;
+    const iso=s.match(/^(\d{4}-\d{2}-\d{2})[T ]/); if (iso && validDate(iso[1])) return iso[1];
+    const m=s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})/); if (!m) return null;
+    const y=m[3].length===2?`20${m[3]}`:m[3], out=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return validDate(out)?out:null;
+  }
+  const AUTO_CATS=[
+    ['abbonamenti',/netflix|spotify|disney|prime video|youtube|icloud|apple\.com|dazn|openai|chatgpt|abbonament|subscription/],
+    ['bar-ristoranti',/mcd|mcdonald|burger|pizz|ristor|trattor|osteria|sushi|kebab|gelat|starbucks|caff|\bbar\b|mensa|panino/],
+    ['alimentari',/market|mercato|supermerc|conad|coop\b|carrefour|lidl|eurospin|esselunga|despar|todis|alimentar|panific|macelleria|ortofrutta|sorriso/],
+    ['trasporti',/trenitalia|italo|trainpal|trenord|gtt|taxi|uber|flixbus|metro|benzin|autostrad|telepass|parcheggio|atm\b/],
+    ['universita',/universit|politecnico|libreria|edisu|tasse/],
+    ['casa',/ikea|leroy|bricoman|enel|a2a|iren\b|affitto|bolletta/],
+    ['salute',/farmac|medic|clinica|ospedale|dentist|dott\./],
+    ['svago',/cinema|steam|playstation|nintendo|xbox|teatro|concert|ticketone|palestra/],
+    ['shopping',/amazon|zalando|shein|h&m|zara|decathlon|paypal/]
+  ];
+  const MCC_CATS=[
+    ['alimentari',[5411,5412,5422,5441,5451,5462,5499]],['bar-ristoranti',[[5811,5814]]],
+    ['trasporti',[4011,4111,4112,4121,4131,4722,4784,5541,5542,7512,7523]],['salute',[5912,[8011,8099]]],
+    ['svago',[7832,7841,7922,[7991,7999],5816]],['universita',[5942,8211,8220,8299]],['casa',[4900,5200,5211,5712]],
+    ['abbonamenti',[4812,4814,4899]],['shopping',[5311,5651,5661,5691,5699,5732,5734,5944,5977,5999]]
+  ];
+  function guessCategory(text,mcc) {
+    const t=String(text||'').toLowerCase(), m=Number(mcc); let id=null;
+    for (const [cid,re] of AUTO_CATS) if (re.test(t)) { id=cid; break; }
+    if (!id && m) for (const [cid,list] of MCC_CATS) if (list.some(x=>Array.isArray(x)?m>=x[0]&&m<=x[1]:m===x)) { id=cid; break; }
+    return id && state.categories.some(c=>c.id===id) ? id : 'altro';
   }
   async function importFile(file) {
-    if (!file) return; const content=await file.text();
+    if (!file) return;
     try {
+      const buf=await file.arrayBuffer(); let content=new TextDecoder('utf-8').decode(buf);
+      if (content.includes('\uFFFD')) content=new TextDecoder('windows-1252').decode(buf);
+      content=content.replace(/^\uFEFF/,'');
       if (file.name.toLowerCase().endsWith('.json')) {
         const p=JSON.parse(content); if (!Array.isArray(p.transactions)) throw new Error('Il backup non contiene una lista di movimenti.');
         const incoming=Array.isArray(p.categories)?p.categories.filter(c=>c&&c.id&&c.name):[];
         const knownIds=new Set([...state.categories,...incoming].map(c=>c.id));
         const ok=p.transactions.filter(t=>Number(t.amount)>0&&validDate(t.date)).map(t=>({id:uuid(),amount:Math.round(Number(t.amount)*100)/100,category:knownIds.has(t.category)?t.category:'altro',date:t.date,note:String(t.note||'')}));
-        const merge=confirm(`Trovate ${ok.length} spese valide. Vuoi unirle a quelle presenti? Premi Annulla per sostituire i dati attuali.`);
+        const merge=confirm(`Trovate ${ok.length} spese valide. OK = aggiungile a quelle presenti. Annulla = altre opzioni.`);
+        if (!merge && !confirm('Vuoi SOSTITUIRE tutte le spese attuali con quelle del backup?')) return;
         state.transactions=merge?[...state.transactions,...ok]:ok;
         if (Number(p.budget)>0) state.budget=Number(p.budget);
         if (incoming.length) { const base=merge?state.categories:[]; const byId=new Map([...base,...incoming].map(c=>[c.id,c])); state.categories=[...byId.values()]; }
         save(); fillCategorySelect(); manageCategories(); render(); toast(`${ok.length} spese importate.`); closeModal('settingsModal'); return;
       }
-      const rows=parseCSV(content.replace(/^\uFEFF/,'')); if (rows.length<2) throw new Error('Il CSV non contiene righe di dati.');
-      const headers=rows[0].map(x=>x.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''));
-      const find=keys=>headers.findIndex(h=>keys.some(k=>h.includes(k)));
-      let di=find(['data','date']), ai=find(['importo','amount','totale','valore']);
-      let ci=find(['categoria','category']), ni=find(['descrizione','description','causale','merchant','esercente','beneficiario']);
-      if (di<0) di=0; if (ai<0) ai=1; if (ni<0) ni=2;
-      const imported=[];
-      for (const r of rows.slice(1)) {
-        const date=parseImportDate(r[di]), amount=parseMoney(r[ai]); if (!date||!(amount>0)) continue;
-        const catName=ci>=0?String(r[ci]||'').trim().toLowerCase():'';
-        const matched=state.categories.find(c=>c.name.toLowerCase()===catName);
-        imported.push({id:uuid(),amount:Math.round(Math.abs(amount)*100)/100,category:matched?.id||'altro',date,note:String(r[ni]||'').trim()});
+      const rows=parseCSV(content);
+      const norm=h=>String(h||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      let hi=-1, c=null;
+      for (let k=0;k<Math.min(rows.length,20);k++) {
+        const hs=rows[k].map(norm);
+        const exact=list=>hs.findIndex(h=>list.includes(h));
+        const part=list=>hs.findIndex(h=>!h.includes('original') && list.some(x=>h.includes(x)));
+        const pick=(ex,pa)=>{ const i=exact(ex); return i>=0?i:part(pa); };
+        const cand={d:pick(['date','data','data operazione','data contabile','data valuta'],['data','date']),a:pick(['amount','importo','importo_eur','totale','valore'],['importo','amount','totale','valore']),
+          out:part(['uscite','addebit','dare','debit']),inn:part(['entrate','accredit','avere','credit']),
+          cat:pick(['category','categoria'],['categoria']),name:exact(['name','merchant','esercente','beneficiario','counterparty_name']),
+          desc:pick(['description','descrizione','causale','note'],['descrizione','causale','description']),type:exact(['type','tipo']),mcc:exact(['mcc_code','mcc'])};
+        if (cand.d>=0 && (cand.a>=0 || cand.out>=0)) { hi=k; c=cand; break; }
       }
-      if (!imported.length) throw new Error('Non ho trovato righe con data e importo riconoscibili. Controlla il formato CSV.');
-      const merge=confirm(`Trovate ${imported.length} spese valide. Vuoi unirle a quelle presenti? Premi Annulla per sostituire i dati attuali.`);
-      state.transactions=merge?[...state.transactions,...imported]:imported; save(); render(); closeModal('settingsModal'); toast(`${imported.length} spese importate.`);
+      if (!c) throw new Error('Colonne data/importo non trovate. Intestazioni lette: '+(rows[0]||[]).slice(0,6).join(', '));
+      const items=[];
+      for (const r of rows.slice(hi+1)) {
+        const date=parseImportDate(r[c.d]); if (!date) continue;
+        let val=NaN;
+        if (c.out>=0 || c.inn>=0) { const o=parseMoney(r[c.out]), i=parseMoney(r[c.inn]); val=o>0?-o:i>0?i:NaN; }
+        else val=parseMoney(r[c.a]);
+        if (!Number.isFinite(val) || val===0) continue;
+        const name=String((c.name>=0&&r[c.name])||(c.desc>=0&&r[c.desc])||'').replace(/\s+/g,' ').trim();
+        const type=c.type>=0?String(r[c.type]||'').toUpperCase():'';
+        items.push({date,val,name,desc:c.desc>=0?String(r[c.desc]||''):'',type,mcc:c.mcc>=0?r[c.mcc]:'',csvCat:c.cat>=0?String(r[c.cat]||'').trim().toLowerCase():''});
+      }
+      const hasNeg=items.some(x=>x.val<0);
+      const exp=items.filter(x=>hasNeg?x.val<0:x.val>0), skippedIncome=items.length-exp.length;
+      if (!exp.length) throw new Error('Non ho trovato uscite riconoscibili nel file.');
+      const existing=new Map(); state.transactions.forEach(t=>{ const k=`${t.date}|${t.amount.toFixed(2)}|${t.note.toLowerCase()}`; existing.set(k,(existing.get(k)||0)+1); });
+      const fresh=[]; let dup=0;
+      for (const x of exp) {
+        const amount=Math.round(Math.abs(x.val)*100)/100;
+        const note=(/OUTBOUND/.test(x.type)&&x.name?`Bonifico a ${x.name}`:x.name).slice(0,70);
+        const k=`${x.date}|${amount.toFixed(2)}|${note.toLowerCase()}`;
+        if (existing.get(k)>0) { existing.set(k,existing.get(k)-1); dup++; continue; }
+        const matched=state.categories.find(cat=>cat.name.toLowerCase()===x.csvCat);
+        fresh.push({id:uuid(),amount,category:matched?.id||guessCategory(`${x.name} ${x.desc}`,x.mcc),date:x.date,note});
+      }
+      if (!fresh.length) { toast('Nessuna spesa nuova: erano già tutte presenti.'); return; }
+      const msg=`Trovate ${exp.length} uscite${skippedIncome?` (${skippedIncome} entrate ignorate)`:''}${dup?`, ${dup} già presenti e saltate`:''}.\nAggiungere ${fresh.length} nuove spese? Le categorie sono assegnate in automatico: puoi correggerle con “Modifica”.`;
+      if (!confirm(msg)) return;
+      state.transactions=[...state.transactions,...fresh]; save(); render(); closeModal('settingsModal'); toast(`${fresh.length} spese importate.`);
     } catch(err) { toast(err.message||'File non riconosciuto.'); }
-    $('importFile').value='';
+    finally { $('importFile').value=''; }
   }
 
   $('authForm').addEventListener('submit',async e=>{
@@ -791,6 +903,7 @@
     finally { $('authSubmit').disabled=false; }
   });
   $('authToggle').addEventListener('click',()=>{ setAuthMode(authMode==='signin'?'signup':'signin'); $('authStatus').textContent=''; });
+  $('togglePw').addEventListener('click',()=>{ const i=$('authPassword'), show=i.type==='password'; i.type=show?'text':'password'; $('togglePw').classList.toggle('shown',show); $('togglePw').setAttribute('aria-pressed',String(show)); $('togglePw').setAttribute('aria-label',show?'Nascondi password':'Mostra password'); i.focus(); });
   $('forgotBtn').addEventListener('click',()=>{ setAuthMode('forgot'); $('authStatus').textContent=''; });
   $('resendBtn').addEventListener('click',async()=>{
     const email=$('authEmail').value.trim(); if(!email||!db) { $('authStatus').textContent='Inserisci la tua email qui sopra.'; return; }
@@ -821,7 +934,7 @@
   document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
   document.addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'); if(edit) showExpenseModal(edit.dataset.edit); const remove=e.target.closest('[data-remove-cat]'); if(remove) removeCategory(remove.dataset.removeCat);});
-  fillCategorySelect(); render();
+  initEmojiPicker(); fillCategorySelect(); render();
   startCloud();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
 })();

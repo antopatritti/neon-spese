@@ -1,5 +1,5 @@
 // Cambia il numero ad ogni pubblicazione per forzare l'aggiornamento della cache.
-const CACHE = 'neon-spese-cache-v3';
+const CACHE = 'neon-spese-cache-v4';
 const FILES = ['./', './index.html', './config.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))));
